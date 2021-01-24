@@ -2,6 +2,7 @@ from sklearn import tree
 from sklearn.metrics import accuracy_score
 import numpy as np
 import pandas as pd
+pd.set_option("display.max_rows", None, "display.max_columns", None)
 
 
 def convert_columns_into_integers_values(dataframe):
@@ -25,18 +26,17 @@ def bagging():
 
     predictions = []
     titanic_test_input = titanic_test.drop('survived', axis=1)
-    features = ['pclass', 'age', 'gender']
+    features = titanic.columns.drop('survived')
 
-    # Create 100 dataset of size n. 65% are without replacement the other 35% with replacement
     for i in range(100):
+        # Create 100 dataset of size n. 65% are without replacement the other 35% with replacement
         titanic_list_without_replacement = titanic_training_unique_values.sample(frac=.632)
         titanic_size = len(titanic)
         titanic_list_without_replacement_size = len(titanic_list_without_replacement)
         complement_list_size = titanic_size - titanic_list_without_replacement_size
         titanic_list_with_replacement = titanic_list_without_replacement.sample(n=complement_list_size, replace=True)
 
-        t_list = [titanic_list_without_replacement, titanic_list_with_replacement]
-        titanic_list = pd.concat(t_list)
+        titanic_list = pd.concat([titanic_list_without_replacement, titanic_list_with_replacement])
         titanic_list = convert_columns_into_integers_values(titanic_list)
 
         x = titanic_list[features]
@@ -52,11 +52,19 @@ def bagging():
 
     array_of_predictions = np.array(predictions)
     prediction_decision = [sum(x) for x in zip(*array_of_predictions)]
+
     for i in range(len(prediction_decision)):
-        prediction_decision[i] = 'yes' if prediction_decision[i] > 50 else 'no'
+        # On prediction_decision the value for survived is 1 and 0 to not survived.
+        # If sum is more than 50% so there is more 1 than 0 and by majority the person survived
+        prediction_decision[i] = 'yes' if prediction_decision[i] > len(array_of_predictions)/2 else 'no'
+
     predict_decision = pd.DataFrame(prediction_decision, columns=['prediction'])
     titanic_test_data = pd.concat([titanic_test_data, predict_decision], axis=1)
-    print("accuracy " + "= " + str(accuracy_score(titanic_test_data.survived, titanic_test_data.prediction)))
+
+    print(titanic_test_data)
+
+    print("Successfully predicted data with accuracy " + "= "
+          + str(accuracy_score(titanic_test_data.survived, titanic_test_data.prediction)*100) + ' %')
 
 
 def main():
